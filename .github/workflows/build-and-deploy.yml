@@ -21,7 +21,7 @@ jobs:
           cache: maven
 
       - name: Build and run tests
-        run: ./mvnw -B verify -Dspring.profiles.active=test
+        run: chmod +x mvnw && ./mvnw -B verify -Dspring.profiles.active=test
 
   # Despliegue opcional: descomenta y configura secretos (ej. Railway, Render, Heroku)
   # deploy:

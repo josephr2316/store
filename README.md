@@ -8,6 +8,41 @@ API REST para una tienda: catálogo de productos y variantes, inventario, pedido
 - **Maven 3.9+** (o usar el wrapper `mvnw` incluido)
 - **PostgreSQL** (por ejemplo Supabase)
 
+## Si la aplicación no arranca: error de Flyway "checksum mismatch"
+
+Si ves **"Migration checksum mismatch for migration version 5"** (o otra versión), es porque una migración ya aplicada en la base de datos fue modificada después. Debes ejecutar **Flyway repair** una vez para actualizar el historial:
+
+1. Usa la **misma URL, usuario y contraseña** que en `application.properties`.
+2. En la raíz del proyecto (donde está `pom.xml`):
+
+**Windows (CMD):**
+```cmd
+set FLYWAY_URL=jdbc:postgresql://db.cwkzmwxyddsqjiiovflt.supabase.co:5432/store
+set FLYWAY_USER=postgres
+set FLYWAY_PASSWORD=TuPasswordDeSupabase
+mvn flyway:repair
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:FLYWAY_URL="jdbc:postgresql://db.cwkzmwxyddsqjiiovflt.supabase.co:5432/store"
+$env:FLYWAY_USER="postgres"
+$env:FLYWAY_PASSWORD="TuPasswordDeSupabase"
+mvn flyway:repair
+```
+
+**Linux / macOS:**
+```bash
+export FLYWAY_URL=jdbc:postgresql://db.cwkzmwxyddsqjiiovflt.supabase.co:5432/store
+export FLYWAY_USER=postgres
+export FLYWAY_PASSWORD=TuPasswordDeSupabase
+./mvnw flyway:repair
+```
+
+Después vuelve a arrancar la aplicación con `./mvnw spring-boot:run` (o `.\mvnw.cmd spring-boot:run`).
+
+---
+
 ## Configuración
 
 1. **Base de datos**: En `src/main/resources/application.properties` están la URL, usuario y contraseña de Supabase. Ajusta si usas otro servidor:
