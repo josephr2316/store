@@ -6,7 +6,7 @@ import com.alterna.store.store.shared.util.WhatsAppLinkUtil;
 import org.springframework.stereotype.Service;
 
 /**
- * Genera el texto de plantilla para WhatsApp con variables del pedido.
+ * Builds WhatsApp template message text with order variables.
  */
 @Service
 public class WhatsAppTemplateService {

@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Reglas de transición de estados del pedido.
- * No se puede pasar a SHIPPED sin estar CONFIRMED, etc.
+ * Order status transition rules.
+ * E.g. cannot transition to SHIPPED without being CONFIRMED first.
  */
 public final class OrderStateMachine {
 

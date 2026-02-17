@@ -1,5 +1,4 @@
--- Datos de prueba (productos, variantes, inventario)
--- Se ejecuta una sola vez al aplicar la migración
+-- Seed data (products, variants, inventory); runs once when migration is applied
 
 INSERT INTO products (id, name, description, sku, created_at)
 VALUES

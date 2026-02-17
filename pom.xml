@@ -197,7 +197,7 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<!-- Flyway repair: corrige "checksum mismatch" si se editó una migración ya aplicada -->
+			<!-- Flyway repair: fix checksum mismatch when a migration was edited after being applied -->
 			<plugin>
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>

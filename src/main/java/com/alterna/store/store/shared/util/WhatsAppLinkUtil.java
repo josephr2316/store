@@ -3,8 +3,8 @@ package com.alterna.store.store.shared.util;
 import java.util.regex.Pattern;
 
 /**
- * Genera enlaces wa.me para WhatsApp Business.
- * Formato: https://wa.me/<número>?text=<mensaje codificado>
+ * Builds wa.me links for WhatsApp Business.
+ * Format: https://wa.me/&lt;number&gt;?text=&lt;url-encoded message&gt;
  */
 public final class WhatsAppLinkUtil {
 
@@ -14,7 +14,7 @@ public final class WhatsAppLinkUtil {
 	private WhatsAppLinkUtil() {}
 
 	/**
-	 * Solo dígitos del número (sin +, espacios, guiones).
+	 * Digits only from the phone number (no +, spaces, or dashes).
 	 */
 	public static String normalizePhone(String phone) {
 		if (phone == null) return "";
@@ -22,7 +22,7 @@ public final class WhatsAppLinkUtil {
 	}
 
 	/**
-	 * URL para abrir chat con texto prellenado.
+	 * URL to open chat with pre-filled message text.
 	 */
 	public static String buildLink(String phone, String message) {
 		String num = normalizePhone(phone);

@@ -1,87 +1,93 @@
-# Store API – Tienda (Inventario, Pedidos, WhatsApp)
+# Store API
 
-API REST para una tienda: catálogo de productos y variantes, inventario, pedidos con flujo de estados, reserva de stock y plantillas de mensaje para WhatsApp.
+REST API for a store: product and variant catalog, inventory, orders with status workflow, stock reservation, and WhatsApp message templates.
 
-## Requisitos
+**Other languages:** [README.es.md](README.es.md) (Spanish)
+
+---
+
+## Requirements
 
 - **Java 21**
-- **Maven 3.9+** (o usar el wrapper `mvnw` incluido)
-- **PostgreSQL** (por ejemplo Supabase)
+- **Maven 3.9+** (or use the included `mvnw` wrapper)
+- **PostgreSQL** (e.g. Supabase)
 
-## Si la aplicación no arranca: error de Flyway "checksum mismatch"
+---
 
-Si ves **"Migration checksum mismatch for migration version 5"** (o otra versión), es porque una migración ya aplicada en la base de datos fue modificada después. Debes ejecutar **Flyway repair** una vez para actualizar el historial:
+## Configuration
 
-1. Usa la **misma URL, usuario y contraseña** que en `application.properties`.
-2. En la raíz del proyecto (donde está `pom.xml`):
+1. **Database:** In `src/main/resources/application.properties` set your database URL, username and password (e.g. Supabase):
+   ```properties
+   spring.datasource.url=jdbc:postgresql://HOST:5432/store
+   spring.datasource.username=postgres
+   spring.datasource.password=YOUR_PASSWORD
+   ```
+
+2. **Create the `store` database** in PostgreSQL/Supabase if it does not exist:
+   ```sql
+   CREATE DATABASE store;
+   ```
+
+3. On startup, **Flyway** creates tables and the default user.
+
+---
+
+## Running the application
+
+```bash
+# Build
+./mvnw compile
+
+# Run (default port 8080, or use PORT env var)
+./mvnw spring-boot:run
+```
+
+**Windows:**
+```cmd
+.\mvnw.cmd spring-boot:run
+```
+
+The log will show the port (e.g. `Tomcat started on port(s): 8080`). The app is available at **http://localhost:8080** (or the port shown).
+
+---
+
+## Flyway "checksum mismatch" error
+
+If you see **"Migration checksum mismatch for migration version 5"** (or another version), a migration was changed after it had already been applied. Run **Flyway repair** once to update the schema history:
+
+Use the **same URL, user and password** as in `application.properties`. From the project root:
 
 **Windows (CMD):**
 ```cmd
-set FLYWAY_URL=jdbc:postgresql://db.cwkzmwxyddsqjiiovflt.supabase.co:5432/store
+set FLYWAY_URL=jdbc:postgresql://YOUR_HOST:5432/store
 set FLYWAY_USER=postgres
-set FLYWAY_PASSWORD=TuPasswordDeSupabase
+set FLYWAY_PASSWORD=YOUR_PASSWORD
 mvn flyway:repair
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:FLYWAY_URL="jdbc:postgresql://db.cwkzmwxyddsqjiiovflt.supabase.co:5432/store"
+$env:FLYWAY_URL="jdbc:postgresql://YOUR_HOST:5432/store"
 $env:FLYWAY_USER="postgres"
-$env:FLYWAY_PASSWORD="TuPasswordDeSupabase"
-mvn flyway:repair
+$env:FLYWAY_PASSWORD="YOUR_PASSWORD"
+.\mvnw.cmd flyway:repair
 ```
 
 **Linux / macOS:**
 ```bash
-export FLYWAY_URL=jdbc:postgresql://db.cwkzmwxyddsqjiiovflt.supabase.co:5432/store
+export FLYWAY_URL=jdbc:postgresql://YOUR_HOST:5432/store
 export FLYWAY_USER=postgres
-export FLYWAY_PASSWORD=TuPasswordDeSupabase
+export FLYWAY_PASSWORD=YOUR_PASSWORD
 ./mvnw flyway:repair
 ```
 
-Después vuelve a arrancar la aplicación con `./mvnw spring-boot:run` (o `.\mvnw.cmd spring-boot:run`).
-
-**Si no puedes ejecutar repair** (ej. no tienes Maven en PATH): puedes descomentar en `application.properties` la línea `spring.flyway.validate-on-migrate=false` para que la app arranque sin validar checksums. Es temporal; lo correcto es ejecutar `flyway:repair` cuando puedas.
+Then start the application again. If you cannot run repair, the project uses `spring.flyway.validate-on-migrate=false` so the app can still start; run repair when possible.
 
 ---
 
-## Configuración
+## Login and API usage
 
-1. **Base de datos**: En `src/main/resources/application.properties` están la URL, usuario y contraseña de Supabase. Ajusta si usas otro servidor:
-   ```properties
-   spring.datasource.url=jdbc:postgresql://HOST:5432/store
-   spring.datasource.username=postgres
-   spring.datasource.password=TU_PASSWORD
-   ```
-
-2. **Crear la base `store`** en PostgreSQL/Supabase si no existe:
-   ```sql
-   CREATE DATABASE store;
-   ```
-
-3. Al arrancar, **Flyway** crea las tablas y el usuario por defecto.
-
-## Cómo ejecutar la aplicación
-
-```bash
-# Compilar
-./mvnw compile
-
-# Ejecutar (puerto automático si server.port=0)
-./mvnw spring-boot:run
-```
-
-En Windows:
-
-```cmd
-.\mvnw.cmd spring-boot:run
-```
-
-El log indicará el puerto (por ejemplo `Tomcat started on port 63386`). La aplicación quedará en **http://localhost:&lt;puerto&gt;**.
-
-## Login y uso de la API
-
-### 1. Obtener token (login)
+### 1. Get token (login)
 
 ```http
 POST /auth/login
@@ -93,7 +99,7 @@ Content-Type: application/json
 }
 ```
 
-Respuesta de ejemplo:
+Example response:
 
 ```json
 {
@@ -103,51 +109,59 @@ Respuesta de ejemplo:
 }
 ```
 
-### 2. Llamar a los endpoints protegidos
+### 2. Call protected endpoints
 
-Incluye el token en la cabecera:
+Include the token in the header:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-Ejemplos:
+Examples:
 
-- `GET /products` – Listar productos
-- `POST /products` – Crear producto
-- `GET /orders` – Listar pedidos
-- `POST /orders` – Crear pedido
-- `POST /orders/{id}/transition` – Cambiar estado (ej. confirmar, enviar)
-- `GET /inventory/balance` – Ver inventario
-- `GET /whatsapp/order/{id}/message` – Mensaje WhatsApp para un pedido
-- `GET /reports/weekly-sales?weekStart=2025-02-10` – Ventas semanales
-- `GET /reports/top-products?limit=10` – Productos más vendidos
+- `GET /products` – List products
+- `POST /products` – Create product
+- `GET /orders` – List orders
+- `POST /orders` – Create order
+- `POST /orders/{id}/transition` – Change order status (e.g. confirm, ship)
+- `GET /inventory/balance` – View inventory
+- `GET /whatsapp/order/{id}/message` – WhatsApp message for an order
+- `GET /reports/weekly-sales?weekStart=2025-02-10` – Weekly sales
+- `GET /reports/top-products?limit=10` – Top products
 
-## Documentación de la API (Swagger)
+---
 
-Con la aplicación en marcha:
+## API documentation (Swagger)
 
-- **Swagger UI**: http://localhost:&lt;puerto&gt;/swagger-ui.html  
-- **OpenAPI JSON**: http://localhost:&lt;puerto&gt;/v3/api-docs  
+With the app running:
 
-Ahí puedes probar todos los endpoints (incluido login y Bearer token).
+- **Swagger UI:** http://localhost:8080/swagger-ui.html  
+- **OpenAPI JSON:** http://localhost:8080/v3/api-docs  
 
-## Endpoints públicos (sin token)
+You can try all endpoints there (including login and Bearer token).
+
+---
+
+## Public endpoints (no token)
 
 - `POST /auth/login`
-- `GET /actuator/health` y `GET /actuator/info`
+- `GET /actuator/health` and `GET /actuator/info`
 - `GET /swagger-ui.html`, `/v3/api-docs/**`
 
-El resto requieren `Authorization: Bearer <token>`.
+All other endpoints require `Authorization: Bearer <token>`.
 
-## Datos de prueba
+---
 
-La migración **V5__seed_data.sql** inserta productos, variantes e inventario de ejemplo. Tras el primer arranque con Flyway ya aplicado, tendrás:
+## Seed data
 
-- **Usuario**: `admin` / `admin123`
-- Productos y variantes de ejemplo con stock
+Migration **V5__seed_data.sql** inserts sample products, variants and inventory. After the first run with Flyway applied you get:
 
-Puedes crear pedidos desde Swagger o con `POST /orders` y probar transiciones y WhatsApp.
+- **User:** `admin` / `admin123`
+- Sample products and variants with stock
+
+You can create orders via Swagger or `POST /orders` and test transitions and WhatsApp.
+
+---
 
 ## Tests
 
@@ -155,36 +169,38 @@ Puedes crear pedidos desde Swagger o con `POST /orders` y probar transiciones y 
 ./mvnw test
 ```
 
-Incluye:
+Uses the `test` profile with H2 in-memory (no PostgreSQL needed). Includes:
 
-- Carga del contexto Spring
-- Tests del login (AuthController)
-- Tests de productos (ProductController) con JWT
+- Spring context load
+- AuthController login tests
+- ProductController tests with JWT
 
-## Estructura del proyecto
+---
+
+## Project structure
 
 ```
 src/main/java/com/alterna/store/store/
 ├── config/           # CORS, OpenAPI, JPA Auditing
-├── shared/           # Excepciones, utilidades, AuditableEntity
+├── shared/           # Exceptions, utilities, AuditableEntity
 ├── security/         # JWT, Auth, User
-├── catalog/          # Productos y variantes
-├── inventory/        # Stock y ajustes
-├── orders/           # Pedidos, estados, historial, dirección
-├── messaging/        # Plantilla WhatsApp
-└── reports/          # Ventas semanales, top productos
+├── catalog/          # Products and variants
+├── inventory/        # Stock and adjustments
+├── orders/           # Orders, status, history, address
+├── messaging/        # WhatsApp template
+└── reports/          # Weekly sales, top products
 ```
 
-## Despliegue con GitHub Actions
+---
 
-Hay un workflow en **`.github/workflows/build-and-deploy.yml`** que:
+## Deployment
 
-1. Compila el proyecto
-2. Ejecuta los tests
-3. (Opcional) Despliega en un servicio externo si configuras los secretos
+- **GitHub Actions:** `.github/workflows/build-and-deploy.yml` compiles and runs tests on push/PR.
+- **Docker:** Use the included `Dockerfile` (e.g. for Render). Default port 8080; set `PORT` in the environment if required.
+- **Step-by-step guide:** [DESPLIEGUE.md](DESPLIEGUE.md) (Spanish).
 
-Guía detallada paso a paso: **[DESPLIEGUE.md](DESPLIEGUE.md)**.
+---
 
-## Licencia
+## License
 
-Uso educativo / interno.
+Educational / internal use.

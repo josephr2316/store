@@ -84,15 +84,28 @@ Para que la API esté accesible por internet (y no solo en localhost), hay que d
 
 Para desplegar desde GitHub Actions con Railway CLI, puedes añadir un job `deploy` que use `RAILWAY_TOKEN` en los secretos del repo.
 
-### Opción B: Render
+### Opción B: Render (con Docker, recomendado)
+
+La aplicación incluye un **Dockerfile** y escucha en el **puerto 8080** (o en la variable `PORT` que inyecta Render).
 
 1. Entra en [render.com](https://render.com) y crea un **Web Service**.
 2. Conecta el repositorio de GitHub.
-3. Configuración típica:
-   - **Build command:** `./mvnw -DskipTests package`
-   - **Start command:** `java -jar target/store-0.0.1-SNAPSHOT.jar`
-4. Añade **Environment Variables** con la URL y credenciales de la base de datos.
-5. Despliega. Render te asigna una URL (ej. `https://store-xxx.onrender.com`).
+3. En **Environment** elige **Docker** (no "Native Environment").
+4. Render detectará el `Dockerfile` en la raíz y construirá la imagen. No hace falta indicar build/start command.
+5. Añade **Environment Variables** (en el panel del servicio):
+   - `SPRING_DATASOURCE_URL` = `jdbc:postgresql://db.xxxx.supabase.co:5432/store`
+   - `SPRING_DATASOURCE_USERNAME` = `postgres`
+   - `SPRING_DATASOURCE_PASSWORD` = tu contraseña de Supabase
+   - `APP_JWT_SECRET` = una clave larga y segura (mínimo 256 bits para HS256)
+   - `APP_JWT_EXPIRATION_MS` = `86400000` (opcional; 24 h por defecto)
+6. Guarda y despliega. Render asigna un puerto vía `PORT`; la app ya está preparada para usarlo.
+7. URL resultante tipo: `https://store-xxx.onrender.com` (health: `https://store-xxx.onrender.com/actuator/health`, Swagger: `.../swagger-ui.html`).
+
+**Alternativa sin Docker (Maven nativo en Render):**
+
+- **Build command:** `chmod +x mvnw && ./mvnw -DskipTests package -B`
+- **Start command:** `java -Dserver.port=$PORT -jar target/store-0.0.1-SNAPSHOT.jar`
+- Mismas variables de entorno que arriba.
 
 ### Opción C: Otra máquina (VPS) con GitHub Actions
 

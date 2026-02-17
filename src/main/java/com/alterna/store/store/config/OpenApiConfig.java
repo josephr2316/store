@@ -15,9 +15,9 @@ public class OpenApiConfig {
 	public OpenAPI openAPI() {
 		return new OpenAPI()
 				.info(new Info()
-						.title("Store API - Tienda")
+						.title("Store API")
 						.version("1.0")
-						.description("API para pedidos, inventario, catálogo y WhatsApp."))
+						.description("REST API for orders, inventory, catalog and WhatsApp messaging."))
 				.addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
 				.components(new Components()
 						.addSecuritySchemes("bearerAuth",
