@@ -41,6 +41,8 @@ export FLYWAY_PASSWORD=TuPasswordDeSupabase
 
 Después vuelve a arrancar la aplicación con `./mvnw spring-boot:run` (o `.\mvnw.cmd spring-boot:run`).
 
+**Si no puedes ejecutar repair** (ej. no tienes Maven en PATH): puedes descomentar en `application.properties` la línea `spring.flyway.validate-on-migrate=false` para que la app arranque sin validar checksums. Es temporal; lo correcto es ejecutar `flyway:repair` cuando puedas.
+
 ---
 
 ## Configuración
