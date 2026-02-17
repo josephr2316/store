@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment (do not commit real credentials) ###
+.env
+.env.local
+.env.*.local
+# Local profile (copy from application-local.properties.example)
+src/main/resources/application-local.properties

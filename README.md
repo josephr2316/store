@@ -16,23 +16,26 @@ REST API for a store: product and variant catalog, inventory, orders with status
 
 ## Configuration
 
-1. **Database:** In `src/main/resources/application.properties` set your database URL, username and password (e.g. Supabase):
-   ```properties
-   spring.datasource.url=jdbc:postgresql://HOST:5432/store
-   spring.datasource.username=postgres
-   spring.datasource.password=YOUR_PASSWORD
-   ```
+Credentials are **not** in `application.properties`; they come from **environment variables** (or a local `.env` file). See **`.env.example`** for the list of variables.
 
-2. **Create the `store` database** in PostgreSQL/Supabase if it does not exist:
+1. **Local:** Copy `.env.example` to `.env`, fill in real values (Supabase password, JWT secret). Load them before running (e.g. `set -a && source .env && set +a` on Unix; on Windows set the vars in PowerShell or use an env file loader).
+
+2. **Render / Docker:** Set the same variables in the service dashboard (e.g. `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `APP_JWT_SECRET`). Use the **Supabase pooler** URL (port 6543, `?sslmode=require`) so the app can connect from Render.
+
+3. **Create the `store` database** in PostgreSQL/Supabase if it does not exist:
    ```sql
    CREATE DATABASE store;
    ```
 
-3. On startup, **Flyway** creates tables and the default user.
+4. On startup, **Flyway** creates tables and the default user.
+
+**If you previously committed secrets:** They remain in git history. Rotate them (new DB password in Supabase, new `APP_JWT_SECRET`) and use the new values only in `.env` or in Render; do not put them back in the repo.
 
 ---
 
 ## Running the application
+
+Set the environment variables (from `.env.example`) first, then:
 
 ```bash
 # Build
@@ -48,6 +51,11 @@ REST API for a store: product and variant catalog, inventory, orders with status
 ```
 
 The log will show the port (e.g. `Tomcat started on port(s): 8080`). The app is available at **http://localhost:8080** (or the port shown).
+
+**Run from IntelliJ:**  
+1. Copy `src/main/resources/application-local.properties.example` to `src/main/resources/application-local.properties` and fill in your DB password and JWT secret.  
+2. In Run → Edit Configurations → your Spring Boot run → **Active profiles**, set `local`.  
+3. Run. The app will use `application-local.properties` (that file is gitignored; do not commit it).
 
 ---
 

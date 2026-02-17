@@ -93,8 +93,8 @@ La aplicación incluye un **Dockerfile** y escucha en el **puerto 8080** (o en l
 3. En **Environment** elige **Docker** (no "Native Environment").
 4. Render detectará el `Dockerfile` en la raíz y construirá la imagen. No hace falta indicar build/start command.
 5. Añade **Environment Variables** (en el panel del servicio):
-   - `SPRING_DATASOURCE_URL` = `jdbc:postgresql://db.xxxx.supabase.co:5432/store`
-   - `SPRING_DATASOURCE_USERNAME` = `postgres`
+   - `SPRING_DATASOURCE_URL` = URL de Supabase. Si usas **pooler** (puerto 6543), añade `&prepareThreshold=0` al final, ej.: `jdbc:postgresql://aws-0-xx.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0`
+   - `SPRING_DATASOURCE_USERNAME` = usuario (ej. `postgres.xxxx` con pooler)
    - `SPRING_DATASOURCE_PASSWORD` = tu contraseña de Supabase
    - `APP_JWT_SECRET` = una clave larga y segura (mínimo 256 bits para HS256)
    - `APP_JWT_EXPIRATION_MS` = `86400000` (opcional; 24 h por defecto)

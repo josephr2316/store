@@ -1,0 +1,14 @@
+# Copy to application-local.properties and fill in. Do NOT commit application-local.properties.
+# Run with profile "local" (IntelliJ: Run → Edit Configurations → Active profiles = local).
+
+# Option A: Supabase pooler (uncomment and set your pooler host and password; use &prepareThreshold=0 in URL)
+# spring.datasource.url=jdbc:postgresql://YOUR_POOLER_HOST:6543/postgres?sslmode=require&prepareThreshold=0
+# spring.datasource.username=postgres.YOUR_PROJECT_REF
+# spring.datasource.password=your_supabase_password
+
+# Option B: Local PostgreSQL
+spring.datasource.url=jdbc:postgresql://localhost:5432/store
+spring.datasource.username=postgres
+spring.datasource.password=Store@Alterna2026@
+
+app.jwt.secret=your-jwt-secret-at-least-32-chars-for-local-dev
