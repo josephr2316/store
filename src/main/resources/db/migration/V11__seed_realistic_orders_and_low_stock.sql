@@ -182,19 +182,25 @@ UPDATE inventory_balance
 SET quantity = 2, reserved = 1, updated_at = now()
 WHERE variant_id = (SELECT id FROM variants WHERE sku = 'cam-001-m' LIMIT 1);
 
--- Set 8 random existing variants to low stock (quantity 1-3)
-UPDATE inventory_balance
-SET quantity = 1 + (ROW_NUMBER() OVER (ORDER BY variant_id) % 3)::int,
-    reserved = LEAST(1, 1 + (ROW_NUMBER() OVER (ORDER BY variant_id) % 3)::int - 1),
+-- Set 8 existing variants to low stock using a CTE (window functions not allowed in SET clause)
+WITH low_stock_candidates AS (
+    SELECT ib.variant_id,
+           (ROW_NUMBER() OVER (ORDER BY ib.variant_id) % 3)::int AS rn
+    FROM (
+        SELECT ib2.variant_id
+        FROM inventory_balance ib2
+        JOIN variants v ON v.id = ib2.variant_id
+        WHERE ib2.quantity > 3
+        ORDER BY ib2.variant_id
+        LIMIT 8
+    ) ib
+)
+UPDATE inventory_balance ib
+SET quantity   = 1 + low_stock_candidates.rn,
+    reserved   = 0,
     updated_at = now()
-WHERE variant_id IN (
-    SELECT ib.variant_id
-    FROM inventory_balance ib
-    JOIN variants v ON v.id = ib.variant_id
-    WHERE ib.quantity > 3
-    ORDER BY ib.variant_id
-    LIMIT 8
-);
+FROM low_stock_candidates
+WHERE ib.variant_id = low_stock_candidates.variant_id;
 
 -- Insert low-stock balances for variants that have no balance yet (if any)
 INSERT INTO inventory_balance (variant_id, quantity, reserved, created_at)
