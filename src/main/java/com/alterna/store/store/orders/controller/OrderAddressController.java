@@ -5,6 +5,7 @@ import com.alterna.store.store.orders.dto.OrderResponse;
 import com.alterna.store.store.orders.service.OrderAddressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class OrderAddressController {
 	@PatchMapping
 	@Operation(summary = "Update shipping address")
 	public ResponseEntity<OrderResponse> updateAddress(@PathVariable Long orderId,
-			@RequestBody OrderAddressUpdateRequest request) {
+			@Valid @RequestBody OrderAddressUpdateRequest request) {
 		return ResponseEntity.ok(addressService.updateAddress(orderId, request));
 	}
 }

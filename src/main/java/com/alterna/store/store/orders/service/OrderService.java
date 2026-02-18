@@ -80,7 +80,7 @@ public class OrderService {
 		return orderMapper.toResponse(order);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public OrderResponse getById(Long id) {
 		OrderEntity e = orderRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Order", id));
@@ -89,7 +89,7 @@ public class OrderService {
 		return orderMapper.toResponse(e);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public List<OrderResponse> listByStatus(OrderStatus status) {
 		List<OrderEntity> orders = status != null
 				? orderRepository.findByStatusOrderByCreatedAtDesc(status)

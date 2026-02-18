@@ -1,6 +1,5 @@
 package com.alterna.store.store.inventory.service;
 
-import com.alterna.store.store.catalog.repository.VariantRepository;
 import com.alterna.store.store.inventory.dto.InventoryBalanceResponse;
 import com.alterna.store.store.inventory.entity.InventoryBalanceEntity;
 import com.alterna.store.store.inventory.repository.InventoryBalanceRepository;
@@ -17,7 +16,6 @@ import java.util.stream.Collectors;
 public class InventoryService {
 
 	private final InventoryBalanceRepository balanceRepository;
-	private final VariantRepository variantRepository;
 
 	@Transactional(readOnly = true)
 	public InventoryBalanceResponse getByVariantId(Long variantId) {
@@ -28,7 +26,7 @@ public class InventoryService {
 
 	@Transactional(readOnly = true)
 	public List<InventoryBalanceResponse> listAll() {
-		return balanceRepository.findAll().stream().map(this::toResponse).collect(Collectors.toList());
+		return balanceRepository.findAllWithVariant().stream().map(this::toResponse).collect(Collectors.toList());
 	}
 
 	@Transactional(readOnly = true)

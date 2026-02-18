@@ -42,7 +42,10 @@ INSERT INTO order_items (
 SELECT
     6000 + g * 2 + i,
     5000 + g,
-    (SELECT id FROM variants ORDER BY id OFFSET ((g * 7 + i * 3) % GREATEST(1,(SELECT COUNT(*) FROM variants)::int)) LIMIT 1),
+    COALESCE(
+        (SELECT id FROM variants ORDER BY id OFFSET ((g * 7 + i * 3) % GREATEST(1,(SELECT COUNT(*) FROM variants)::int)) LIMIT 1),
+        (SELECT MIN(id) FROM variants)
+    ),
     (1 + (random() * 4))::int,
     (80 + random() * 400)::decimal(19,4),
     (now() - (g || ' days')::interval),
@@ -91,7 +94,10 @@ INSERT INTO order_items (id, order_id, variant_id, quantity, unit_price, created
 SELECT
     6750 + g * 2 + i,
     5400 + g,
-    (SELECT id FROM variants ORDER BY id OFFSET ((g * 5 + i) % GREATEST(1,(SELECT COUNT(*) FROM variants)::int)) LIMIT 1),
+    COALESCE(
+        (SELECT id FROM variants ORDER BY id OFFSET ((g * 5 + i) % GREATEST(1,(SELECT COUNT(*) FROM variants)::int)) LIMIT 1),
+        (SELECT MIN(id) FROM variants)
+    ),
     (1 + (random() * 3))::int,
     (100 + random() * 500)::decimal(19,4),
     now(), now()
@@ -124,7 +130,10 @@ INSERT INTO order_items (id, order_id, variant_id, quantity, unit_price, created
 SELECT
     6800 + i,
     5500 + (i / 2),
-    (SELECT id FROM variants ORDER BY id OFFSET (i % GREATEST(1,(SELECT COUNT(*) FROM variants)::int)) LIMIT 1),
+    COALESCE(
+        (SELECT id FROM variants ORDER BY id OFFSET (i % GREATEST(1,(SELECT COUNT(*) FROM variants)::int)) LIMIT 1),
+        (SELECT MIN(id) FROM variants)
+    ),
     2, (200 + i * 50)::decimal(19,4),
     now(), now()
 FROM generate_series(0, 9) AS i
