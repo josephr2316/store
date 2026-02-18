@@ -112,6 +112,7 @@ public class ReportsService {
 			LocalDate tmp = from; from = to; to = tmp;
 		}
 		List<PeriodSaleDto> byWeek = new ArrayList<>();
+		List<DailySaleDto> byDay = new ArrayList<>();
 		BigDecimal totalAmount = BigDecimal.ZERO;
 		long totalOrders = 0L;
 		try {
@@ -127,12 +128,30 @@ public class ReportsService {
 				totalOrders += count;
 				weekStart = weekStart.plusWeeks(1);
 			}
+			Instant dayFrom = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
+			Instant dayTo = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+			List<Object[]> dayRows = reportsRepository.deliveredOrdersCountAndTotalByDay(dayFrom, dayTo, OrderStatus.DELIVERED);
+			Map<LocalDate, DailySaleDto> dayMap = new LinkedHashMap<>();
+			if (dayRows != null) {
+				for (Object[] r : dayRows) {
+					LocalDate d = toLocalDate(r[0]);
+					if (d == null) continue;
+					Long c = r.length > 1 && r[1] != null ? ((Number) r[1]).longValue() : 0L;
+					BigDecimal a = r.length > 2 ? toBigDecimal(r[2]) : BigDecimal.ZERO;
+					dayMap.put(d, DailySaleDto.builder().date(d).orderCount(c).totalAmount(a).build());
+				}
+			}
+			int maxDays = 366;
+			for (LocalDate d = from, n = 0; !d.isAfter(to) && n < maxDays; d = d.plusDays(1), n++) {
+				byDay.add(dayMap.getOrDefault(d, DailySaleDto.builder().date(d).orderCount(0L).totalAmount(BigDecimal.ZERO).build()));
+			}
 			return SalesInRangeResponse.builder()
 					.from(from)
 					.to(to)
 					.totalAmount(totalAmount)
 					.totalOrders(totalOrders)
 					.byWeek(byWeek)
+					.byDay(byDay)
 					.build();
 		} catch (Exception e) {
 			log.warn("Reports: salesInRange failed: {}", e.getMessage());
@@ -142,6 +161,7 @@ public class ReportsService {
 					.totalAmount(BigDecimal.ZERO)
 					.totalOrders(0L)
 					.byWeek(Collections.emptyList())
+					.byDay(Collections.emptyList())
 					.build();
 		}
 	}

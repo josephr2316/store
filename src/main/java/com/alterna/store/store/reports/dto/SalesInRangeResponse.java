@@ -16,4 +16,6 @@ public class SalesInRangeResponse {
 	private Long totalOrders;
 	/** Ventas por semana en el rango (una entrada por semana) */
 	private List<PeriodSaleDto> byWeek;
+	/** Ventas por día en el rango (una entrada por día) */
+	private List<DailySaleDto> byDay;
 }
