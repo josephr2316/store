@@ -1,11 +1,13 @@
 package com.alterna.store.store.shared.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException ex, HttpServletRequest req) {
@@ -77,6 +81,17 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.builder()
 				.message("Access denied")
 				.status(HttpStatus.FORBIDDEN.value())
+				.path(req.getRequestURI())
+				.timestamp(Instant.now())
+				.build());
+	}
+
+	@ExceptionHandler(DataAccessException.class)
+	public ResponseEntity<ApiError> handleDataAccess(DataAccessException ex, HttpServletRequest req) {
+		log.warn("Data access error at {}: {}", req.getRequestURI(), ex.getMessage());
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.builder()
+				.message("Error temporal de base de datos. Por favor, intenta de nuevo en unos segundos.")
+				.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
 				.path(req.getRequestURI())
 				.timestamp(Instant.now())
 				.build());

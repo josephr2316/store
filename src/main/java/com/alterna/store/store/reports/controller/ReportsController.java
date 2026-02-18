@@ -25,8 +25,9 @@ public class ReportsController {
 	@GetMapping("/weekly-sales")
 	@Operation(summary = "Sales for a given week (delivered orders)")
 	public ResponseEntity<WeeklySalesResponse> weeklySales(
-			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
-		return ResponseEntity.ok(reportsService.weeklySales(weekStart));
+			@RequestParam(name = "week", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+		LocalDate week = weekStart != null ? weekStart : LocalDate.now();
+		return ResponseEntity.ok(reportsService.weeklySales(week));
 	}
 
 	@GetMapping("/top-products")
