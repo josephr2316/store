@@ -1,6 +1,5 @@
 package com.alterna.store.store.reports.service;
 
-import com.alterna.store.store.catalog.repository.VariantRepository;
 import com.alterna.store.store.orders.enums.OrderStatus;
 import com.alterna.store.store.reports.dto.DailySaleDto;
 import com.alterna.store.store.reports.dto.PagedResponse;
@@ -36,7 +35,6 @@ public class ReportsService {
 	private static final Logger log = LoggerFactory.getLogger(ReportsService.class);
 
 	private final ReportsRepository reportsRepository;
-	private final VariantRepository variantRepository;
 
 	private static BigDecimal toBigDecimal(Object o) {
 		if (o == null) return BigDecimal.ZERO;
@@ -108,60 +106,67 @@ public class ReportsService {
 	public SalesInRangeResponse salesInRange(LocalDate from, LocalDate to) {
 		if (from == null) from = LocalDate.now().minusYears(1);
 		if (to == null) to = LocalDate.now();
-		if (!from.isBefore(to) && !from.equals(to)) {
-			LocalDate tmp = from; from = to; to = tmp;
-		}
+		if (from.isAfter(to)) { LocalDate tmp = from; from = to; to = tmp; }
+
 		List<PeriodSaleDto> byWeek = new ArrayList<>();
 		List<DailySaleDto> byDay = new ArrayList<>();
-		BigDecimal totalAmount = BigDecimal.ZERO;
-		long totalOrders = 0L;
+
 		try {
-			LocalDate weekStart = from;
-			while (!weekStart.isAfter(to)) {
-				Instant instFrom = weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant();
-				Instant instTo = instFrom.plus(7, ChronoUnit.DAYS);
-				Object[] row = reportsRepository.deliveredOrdersCountAndTotal(instFrom, instTo, OrderStatus.DELIVERED);
-				Long count = row != null && row.length > 0 && row[0] != null ? ((Number) row[0]).longValue() : 0L;
-				BigDecimal amt = row != null && row.length > 1 ? toBigDecimal(row[1]) : BigDecimal.ZERO;
-				byWeek.add(PeriodSaleDto.builder().periodStart(weekStart).orderCount(count).totalAmount(amt).build());
-				totalAmount = totalAmount.add(amt);
-				totalOrders += count;
-				weekStart = weekStart.plusWeeks(1);
-			}
+			// 1 query for all daily data in the full range (no N+1 per week)
 			Instant dayFrom = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
-			Instant dayTo = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+			Instant dayTo   = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
 			List<Object[]> dayRows = reportsRepository.deliveredOrdersCountAndTotalByDay(dayFrom, dayTo, OrderStatus.DELIVERED);
+
+			// Build day map from DB results
 			Map<LocalDate, DailySaleDto> dayMap = new LinkedHashMap<>();
 			if (dayRows != null) {
 				for (Object[] r : dayRows) {
 					LocalDate d = toLocalDate(r[0]);
 					if (d == null) continue;
-					Long c = r.length > 1 && r[1] != null ? ((Number) r[1]).longValue() : 0L;
+					Long c  = r.length > 1 && r[1] != null ? ((Number) r[1]).longValue() : 0L;
 					BigDecimal a = r.length > 2 ? toBigDecimal(r[2]) : BigDecimal.ZERO;
 					dayMap.put(d, DailySaleDto.builder().date(d).orderCount(c).totalAmount(a).build());
 				}
 			}
+
+			// Fill byDay (zero for missing days)
 			int maxDays = 366;
 			for (LocalDate d = from; !d.isAfter(to) && byDay.size() < maxDays; d = d.plusDays(1)) {
 				byDay.add(dayMap.getOrDefault(d, DailySaleDto.builder().date(d).orderCount(0L).totalAmount(BigDecimal.ZERO).build()));
 			}
+
+			// Aggregate byWeek from byDay (no extra DB queries)
+			LocalDate weekCursor = from;
+			while (!weekCursor.isAfter(to)) {
+				LocalDate weekEnd = weekCursor.plusDays(6);
+				long weekCount = 0L;
+				BigDecimal weekAmt = BigDecimal.ZERO;
+				for (LocalDate d = weekCursor; !d.isAfter(weekEnd) && !d.isAfter(to); d = d.plusDays(1)) {
+					DailySaleDto day = dayMap.get(d);
+					if (day != null) {
+						weekCount += day.getOrderCount();
+						weekAmt = weekAmt.add(day.getTotalAmount());
+					}
+				}
+				byWeek.add(PeriodSaleDto.builder().periodStart(weekCursor).orderCount(weekCount).totalAmount(weekAmt).build());
+				weekCursor = weekCursor.plusWeeks(1);
+			}
+
+			// Totals from byDay
+			BigDecimal totalAmount = byDay.stream().map(DailySaleDto::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+			long totalOrders = byDay.stream().mapToLong(DailySaleDto::getOrderCount).sum();
+
 			return SalesInRangeResponse.builder()
-					.from(from)
-					.to(to)
-					.totalAmount(totalAmount)
-					.totalOrders(totalOrders)
-					.byWeek(byWeek)
-					.byDay(byDay)
+					.from(from).to(to)
+					.totalAmount(totalAmount).totalOrders(totalOrders)
+					.byWeek(byWeek).byDay(byDay)
 					.build();
 		} catch (Exception e) {
-			log.warn("Reports: salesInRange failed: {}", e.getMessage());
+			log.warn("Reports: salesInRange failed: {}", e.getMessage(), e);
 			return SalesInRangeResponse.builder()
-					.from(from)
-					.to(to)
-					.totalAmount(BigDecimal.ZERO)
-					.totalOrders(0L)
-					.byWeek(Collections.emptyList())
-					.byDay(Collections.emptyList())
+					.from(from).to(to)
+					.totalAmount(BigDecimal.ZERO).totalOrders(0L)
+					.byWeek(Collections.emptyList()).byDay(Collections.emptyList())
 					.build();
 		}
 	}
@@ -177,14 +182,15 @@ public class ReportsService {
 			int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
 			Pageable pageable = PageRequest.of(page, size);
 			List<Object[]> rows = reportsRepository.topVariantsByQuantity(from, to, OrderStatus.DELIVERED, pageable);
+			// SKU included in query ([0]=variantId, [1]=sku, [2]=qty, [3]=revenue) — no N+1
 			List<TopProductsResponse> content = rows == null ? Collections.emptyList() : rows.stream().map(row -> {
 				Long variantId = row != null && row.length > 0 && row[0] != null ? ((Number) row[0]).longValue() : null;
-				Long qty = row != null && row.length > 1 && row[1] != null ? ((Number) row[1]).longValue() : 0L;
-				BigDecimal revenue = row != null && row.length > 2 ? toBigDecimal(row[2]) : BigDecimal.ZERO;
-				String sku = variantId != null ? variantRepository.findById(variantId).map(v -> v.getSku()).orElse("") : "";
+				String sku      = row != null && row.length > 1 && row[1] != null ? row[1].toString() : "";
+				Long qty        = row != null && row.length > 2 && row[2] != null ? ((Number) row[2]).longValue() : 0L;
+				BigDecimal revenue = row != null && row.length > 3 ? toBigDecimal(row[3]) : BigDecimal.ZERO;
 				return TopProductsResponse.builder()
 						.variantId(variantId)
-						.variantSku(sku != null ? sku : "")
+						.variantSku(sku)
 						.quantitySold(qty)
 						.revenue(revenue)
 						.build();
@@ -216,13 +222,13 @@ public class ReportsService {
 			List<Object[]> rows = reportsRepository.topVariantsByQuantity(from, to, OrderStatus.DELIVERED, PageRequest.of(0, limit));
 			if (rows == null) return Collections.emptyList();
 			return rows.stream().map(row -> {
-				Long variantId = row != null && row.length > 0 && row[0] != null ? ((Number) row[0]).longValue() : null;
-				Long qty = row != null && row.length > 1 && row[1] != null ? ((Number) row[1]).longValue() : 0L;
-				BigDecimal revenue = row != null && row.length > 2 ? toBigDecimal(row[2]) : BigDecimal.ZERO;
-				String sku = variantId != null ? variantRepository.findById(variantId).map(v -> v.getSku()).orElse("") : "";
+				Long variantId  = row != null && row.length > 0 && row[0] != null ? ((Number) row[0]).longValue() : null;
+				String sku       = row != null && row.length > 1 && row[1] != null ? row[1].toString() : "";
+				Long qty         = row != null && row.length > 2 && row[2] != null ? ((Number) row[2]).longValue() : 0L;
+				BigDecimal revenue = row != null && row.length > 3 ? toBigDecimal(row[3]) : BigDecimal.ZERO;
 				return TopProductsResponse.builder()
 						.variantId(variantId)
-						.variantSku(sku != null ? sku : "")
+						.variantSku(sku)
 						.quantitySold(qty)
 						.revenue(revenue)
 						.build();

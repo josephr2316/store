@@ -2,8 +2,6 @@ package com.alterna.store.store.orders.service;
 
 import com.alterna.store.store.catalog.entity.VariantEntity;
 import com.alterna.store.store.catalog.repository.VariantRepository;
-import com.alterna.store.store.inventory.entity.InventoryBalanceEntity;
-import com.alterna.store.store.inventory.repository.InventoryBalanceRepository;
 import com.alterna.store.store.orders.dto.*;
 import com.alterna.store.store.orders.entity.*;
 import com.alterna.store.store.orders.enums.OrderChannel;
@@ -11,8 +9,8 @@ import com.alterna.store.store.orders.enums.OrderStatus;
 import com.alterna.store.store.orders.mapper.OrderMapper;
 import com.alterna.store.store.orders.repository.OrderItemRepository;
 import com.alterna.store.store.orders.repository.OrderRepository;
+import com.alterna.store.store.orders.repository.OrderStatusHistoryRepository;
 import com.alterna.store.store.shared.exception.ResourceNotFoundException;
-import com.alterna.store.store.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +30,8 @@ public class OrderService {
 
 	private final OrderRepository orderRepository;
 	private final OrderItemRepository orderItemRepository;
+	private final OrderStatusHistoryRepository historyRepository;
 	private final VariantRepository variantRepository;
-	private final InventoryBalanceRepository inventoryBalanceRepository;
 	private final OrderMapper orderMapper;
 
 	@Transactional
@@ -72,15 +70,13 @@ public class OrderService {
 		order.setItems(items);
 		order.setTotalAmount(total);
 		order = orderRepository.save(order);
-		order = orderRepository.save(order);
-		OrderStatusHistoryEntity hist = OrderStatusHistoryEntity.builder()
+		// Save initial status history directly (avoids lazy collection access)
+		historyRepository.save(OrderStatusHistoryEntity.builder()
 				.order(order)
 				.fromStatus(null)
 				.toStatus(OrderStatus.PENDING)
 				.reason("Order created")
-				.build();
-		order.getStatusHistory().add(hist);
-		orderRepository.save(order);
+				.build());
 		return orderMapper.toResponse(order);
 	}
 

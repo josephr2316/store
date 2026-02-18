@@ -7,8 +7,9 @@ import com.alterna.store.store.orders.entity.OrderEntity;
 import com.alterna.store.store.orders.entity.OrderItemEntity;
 import com.alterna.store.store.orders.entity.OrderStatusHistoryEntity;
 import com.alterna.store.store.orders.enums.OrderStatus;
-import com.alterna.store.store.orders.mapper.OrderMapper;
+import com.alterna.store.store.orders.repository.OrderItemRepository;
 import com.alterna.store.store.orders.repository.OrderRepository;
+import com.alterna.store.store.orders.repository.OrderStatusHistoryRepository;
 import com.alterna.store.store.orders.rules.OrderStateMachine;
 import com.alterna.store.store.orders.entity.AddressEmbeddable;
 import com.alterna.store.store.shared.exception.ConflictException;
@@ -19,13 +20,16 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class OrderTransitionService {
 
 	private final OrderRepository orderRepository;
+	private final OrderItemRepository orderItemRepository;
+	private final OrderStatusHistoryRepository historyRepository;
 	private final InventoryBalanceRepository inventoryBalanceRepository;
-	private final OrderMapper orderMapper;
 	@Lazy
 	private final OrderService orderService;
 
@@ -33,6 +37,8 @@ public class OrderTransitionService {
 	public com.alterna.store.store.orders.dto.OrderResponse transition(Long orderId, OrderTransitionRequest req) {
 		OrderEntity order = orderRepository.findById(orderId)
 				.orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+		// Load items with variant to avoid LazyInitializationException (no lazy access in reserve/release)
+		order.setItems(orderItemRepository.findByOrderIdInWithVariant(List.of(orderId)));
 		OrderStatus from = order.getStatus();
 		OrderStatus to = req.getToStatus();
 		OrderStateMachine.validateTransition(from, to);
@@ -47,14 +53,13 @@ public class OrderTransitionService {
 		}
 		order.setStatus(to);
 		orderRepository.save(order);
-		OrderStatusHistoryEntity hist = OrderStatusHistoryEntity.builder()
+		// Save history directly (avoids touching lazy statusHistory collection)
+		historyRepository.save(OrderStatusHistoryEntity.builder()
 				.order(order)
 				.fromStatus(from)
 				.toStatus(to)
 				.reason(req.getReason())
-				.build();
-		order.getStatusHistory().add(hist);
-		orderRepository.save(order);
+				.build());
 		return orderService.getById(orderId);
 	}
 
