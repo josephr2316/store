@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,16 +92,21 @@ public class OrderService {
 	}
 
 	/**
-	 * Returns order headers WITHOUT items for fast list rendering.
-	 * Uses toSummaryResponse which never accesses any lazy collection
-	 * (avoids N×400 orphanRemoval checks that caused timeout).
+	 * Returns paginated order headers WITHOUT items for fast list rendering.
+	 * Default page size 30 keeps response small and avoids DB/pgBouncer timeouts.
 	 */
 	@Transactional(readOnly = true)
-	public List<OrderResponse> listByStatus(OrderStatus status) {
-		List<OrderEntity> orders = status != null
-				? orderRepository.findByStatusOrderByCreatedAtDesc(status)
-				: orderRepository.findAllByOrderByCreatedAtDesc();
-		if (orders.isEmpty()) return Collections.emptyList();
-		return orders.stream().map(orderMapper::toSummaryResponse).toList();
+	public Page<OrderResponse> listByStatus(OrderStatus status, int page, int size) {
+		PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
+		Page<OrderEntity> pageResult = status != null
+				? orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
+				: orderRepository.findAllByOrderByCreatedAtDesc(pageable);
+		return pageResult.map(orderMapper::toSummaryResponse);
+	}
+
+	/** Convenience overload for backward compat (page 0, 30 items). */
+	@Transactional(readOnly = true)
+	public Page<OrderResponse> listByStatus(OrderStatus status) {
+		return listByStatus(status, 0, 30);
 	}
 }

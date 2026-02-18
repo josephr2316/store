@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+
 import java.util.List;
 
 @RestController
@@ -35,10 +37,13 @@ public class OrderController {
 	}
 
 	@GetMapping
-	@Operation(summary = "List orders (optional filter by status). Use status=PENDING|CONFIRMED|... or omit for all.")
-	public ResponseEntity<List<OrderResponse>> list(@RequestParam(required = false) String status) {
+	@Operation(summary = "List orders paginated. status=PENDING|CONFIRMED|... or omit for all. page=0, size=30 by default.")
+	public ResponseEntity<Page<OrderResponse>> list(
+			@RequestParam(required = false) String status,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "30") int size) {
 		OrderStatus parsed = parseStatus(status);
-		return ResponseEntity.ok(orderService.listByStatus(parsed));
+		return ResponseEntity.ok(orderService.listByStatus(parsed, page, size));
 	}
 
 	private static OrderStatus parseStatus(String status) {
