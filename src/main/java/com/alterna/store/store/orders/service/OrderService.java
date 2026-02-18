@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -89,22 +88,19 @@ public class OrderService {
 		return orderMapper.toResponse(e);
 	}
 
-	@Transactional
+	/**
+	 * Returns order headers WITHOUT items for fast list rendering.
+	 * Items are loaded on-demand in getById() when the user opens an order.
+	 */
+	@Transactional(readOnly = true)
 	public List<OrderResponse> listByStatus(OrderStatus status) {
 		List<OrderEntity> orders = status != null
 				? orderRepository.findByStatusOrderByCreatedAtDesc(status)
 				: orderRepository.findAllByOrderByCreatedAtDesc();
 		if (orders.isEmpty()) return Collections.emptyList();
-		List<Long> orderIds = orders.stream().map(OrderEntity::getId).toList();
-		// Batch to avoid IN clause size limits (DB/driver)
-		List<OrderItemEntity> itemsWithVariant = new ArrayList<>();
-		for (int i = 0; i < orderIds.size(); i += ORDER_IDS_BATCH_SIZE) {
-			List<Long> batch = orderIds.subList(i, Math.min(i + ORDER_IDS_BATCH_SIZE, orderIds.size()));
-			itemsWithVariant.addAll(orderItemRepository.findByOrderIdInWithVariant(batch));
-		}
-		var itemsByOrderId = itemsWithVariant.stream().collect(Collectors.groupingBy(i -> i.getOrder().getId()));
+		// Set empty items list to avoid lazy-load and keep response small
 		for (OrderEntity o : orders) {
-			o.setItems(itemsByOrderId.getOrDefault(o.getId(), Collections.emptyList()));
+			o.setItems(Collections.emptyList());
 		}
 		return orders.stream().map(orderMapper::toResponse).toList();
 	}
