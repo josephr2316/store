@@ -55,7 +55,7 @@ public class ReportsService {
 		return null;
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, noRollbackFor = Exception.class)
 	public WeeklySalesResponse weeklySales(LocalDate weekStart) {
 		try {
 			Instant from = weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant();
@@ -65,7 +65,7 @@ public class ReportsService {
 			BigDecimal total = row != null && row.length > 1 ? toBigDecimal(row[1]) : BigDecimal.ZERO;
 
 			Map<LocalDate, DailySaleDto> byDay = new LinkedHashMap<>();
-			List<Object[]> rows = reportsRepository.deliveredOrdersCountAndTotalByDay(from, to, OrderStatus.DELIVERED);
+			List<Object[]> rows = reportsRepository.deliveredOrdersCountAndTotalByDay(from, to, OrderStatus.DELIVERED.name());
 			if (rows != null) {
 				for (Object[] r : rows) {
 					LocalDate d = toLocalDate(r[0]);
@@ -102,7 +102,7 @@ public class ReportsService {
 		}
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, noRollbackFor = Exception.class)
 	public SalesInRangeResponse salesInRange(LocalDate from, LocalDate to) {
 		if (from == null) from = LocalDate.now().minusYears(1);
 		if (to == null) to = LocalDate.now();
@@ -115,7 +115,7 @@ public class ReportsService {
 			// 1 query for all daily data in the full range (no N+1 per week)
 			Instant dayFrom = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
 			Instant dayTo   = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-			List<Object[]> dayRows = reportsRepository.deliveredOrdersCountAndTotalByDay(dayFrom, dayTo, OrderStatus.DELIVERED);
+			List<Object[]> dayRows = reportsRepository.deliveredOrdersCountAndTotalByDay(dayFrom, dayTo, OrderStatus.DELIVERED.name());
 
 			// Build day map from DB results
 			Map<LocalDate, DailySaleDto> dayMap = new LinkedHashMap<>();
@@ -171,7 +171,7 @@ public class ReportsService {
 		}
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, noRollbackFor = Exception.class)
 	public PagedResponse<TopProductsResponse> topProductsPaginated(Instant from, Instant to, int page, int size) {
 		try {
 			if (from == null) from = Instant.now().minus(365, ChronoUnit.DAYS);
@@ -214,7 +214,7 @@ public class ReportsService {
 		}
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, noRollbackFor = Exception.class)
 	public List<TopProductsResponse> topProducts(int limit, Instant from, Instant to) {
 		try {
 			if (from == null) from = Instant.now().minus(30, ChronoUnit.DAYS);
