@@ -1,4 +1,4 @@
--- Pedidos DELIVERED con created_at en los últimos 60 días para que los reportes muestren datos al elegir rango de fechas.
+-- DELIVERED orders with created_at in the last 60 days so reports show data when selecting a date range.
 -- PostgreSQL
 
 INSERT INTO orders (id, channel, status, customer_name, customer_phone, total_amount, currency, created_at, updated_at)

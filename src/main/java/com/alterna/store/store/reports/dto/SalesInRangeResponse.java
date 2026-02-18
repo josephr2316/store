@@ -14,8 +14,8 @@ public class SalesInRangeResponse {
 	private LocalDate to;
 	private BigDecimal totalAmount;
 	private Long totalOrders;
-	/** Ventas por semana en el rango (una entrada por semana) */
+	/** Sales per week in the range (one entry per week) */
 	private List<PeriodSaleDto> byWeek;
-	/** Ventas por día en el rango (una entrada por día) */
+	/** Sales per day in the range (one entry per day) */
 	private List<DailySaleDto> byDay;
 }

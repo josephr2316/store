@@ -13,6 +13,6 @@ public class WeeklySalesResponse {
 	private LocalDate weekStart;
 	private Long orderCount;
 	private BigDecimal totalAmount;
-	/** Ventas por día (siempre 7 entradas: Lun–Dom de la semana) */
+	/** Sales per day (always 7 entries: Mon–Sun for the week) */
 	private List<DailySaleDto> dailyBreakdown;
 }

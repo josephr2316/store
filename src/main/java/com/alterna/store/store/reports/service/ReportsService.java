@@ -142,7 +142,7 @@ public class ReportsService {
 				}
 			}
 			int maxDays = 366;
-			for (LocalDate d = from, n = 0; !d.isAfter(to) && n < maxDays; d = d.plusDays(1), n++) {
+			for (LocalDate d = from; !d.isAfter(to) && byDay.size() < maxDays; d = d.plusDays(1)) {
 				byDay.add(dayMap.getOrDefault(d, DailySaleDto.builder().date(d).orderCount(0L).totalAmount(BigDecimal.ZERO).build()));
 			}
 			return SalesInRangeResponse.builder()
