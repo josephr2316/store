@@ -21,28 +21,19 @@ import java.util.List;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorsResponseFilter extends OncePerRequestFilter {
 
-	private static final List<String> ALLOWED_ORIGINS = List.of(
-			"https://store-frontend-olive-sigma.vercel.app",
-			"http://localhost:5173",
-			"http://localhost:3000",
-			"http://127.0.0.1:5173",
-			"http://127.0.0.1:3000"
-	);
-
-	private static final String ALLOWED_ORIGIN_PATTERN_SUFFIX = ".vercel.app";
-
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
 			FilterChain filterChain) throws ServletException, IOException {
 		String origin = request.getHeader("Origin");
-		if (origin != null && !origin.isEmpty()) {
-			boolean allow = ALLOWED_ORIGINS.contains(origin)
-					|| (origin.startsWith("https://") && origin.endsWith(ALLOWED_ORIGIN_PATTERN_SUFFIX));
-			if (allow) {
-				response.setHeader("Access-Control-Allow-Origin", origin);
-			}
-		} else {
-			response.setHeader("Access-Control-Allow-Origin", "https://store-frontend-olive-sigma.vercel.app");
+		// Allow any Vercel deployment and localhost (this filter covers error responses too)
+		boolean allow = origin != null && !origin.isEmpty()
+				&& (origin.endsWith(".vercel.app")
+						|| origin.startsWith("http://localhost:")
+						|| origin.startsWith("http://127.0.0.1:"));
+		if (allow) {
+			response.setHeader("Access-Control-Allow-Origin", origin);
+		} else if (origin == null || origin.isEmpty()) {
+			// No origin header (e.g. same-origin or server-to-server) — no header needed
 		}
 		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
 		response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Requested-With");
