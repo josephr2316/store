@@ -21,12 +21,19 @@ public class DataSourcePoolerFixConfig implements BeanPostProcessor {
 	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
 		if (bean instanceof HikariDataSource hikari) {
 			String url = hikari.getJdbcUrl();
-			if (url != null && url.startsWith("jdbc:postgresql:") && !url.contains("prepareThreshold")) {
-				String fixed = url.contains("?") ? url + "&prepareThreshold=0" : url + "?prepareThreshold=0";
-				hikari.setJdbcUrl(fixed);
+			// Only apply to PostgreSQL connections (not H2 in tests, not other JDBC vendors)
+			if (url != null && url.startsWith("jdbc:postgresql:")) {
+				if (!url.contains("prepareThreshold")) {
+					String fixed = url.contains("?") ? url + "&prepareThreshold=0" : url + "?prepareThreshold=0";
+					hikari.setJdbcUrl(fixed);
+				}
+				// Pass as connection property so DriverManager also receives it
+				try {
+					hikari.addDataSourceProperty("prepareThreshold", "0");
+				} catch (IllegalStateException ignored) {
+					// Config may already be sealed if pool started before BeanPostProcessor ran
+				}
 			}
-			// Also force via DataSource properties as belt-and-suspenders
-			hikari.addDataSourceProperty("prepareThreshold", "0");
 		}
 		return bean;
 	}
