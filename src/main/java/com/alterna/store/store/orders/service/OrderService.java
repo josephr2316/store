@@ -27,6 +27,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
+	/** Max size for IN clause to avoid DB/driver limits (e.g. PostgreSQL). */
+	private static final int ORDER_IDS_BATCH_SIZE = 200;
+
 	private final OrderRepository orderRepository;
 	private final OrderItemRepository orderItemRepository;
 	private final VariantRepository variantRepository;
@@ -97,7 +100,12 @@ public class OrderService {
 				: orderRepository.findAllByOrderByCreatedAtDesc();
 		if (orders.isEmpty()) return Collections.emptyList();
 		List<Long> orderIds = orders.stream().map(OrderEntity::getId).toList();
-		List<OrderItemEntity> itemsWithVariant = orderItemRepository.findByOrderIdInWithVariant(orderIds);
+		// Batch to avoid IN clause size limits (DB/driver)
+		List<OrderItemEntity> itemsWithVariant = new ArrayList<>();
+		for (int i = 0; i < orderIds.size(); i += ORDER_IDS_BATCH_SIZE) {
+			List<Long> batch = orderIds.subList(i, Math.min(i + ORDER_IDS_BATCH_SIZE, orderIds.size()));
+			itemsWithVariant.addAll(orderItemRepository.findByOrderIdInWithVariant(batch));
+		}
 		var itemsByOrderId = itemsWithVariant.stream().collect(Collectors.groupingBy(i -> i.getOrder().getId()));
 		for (OrderEntity o : orders) {
 			o.setItems(itemsByOrderId.getOrDefault(o.getId(), Collections.emptyList()));

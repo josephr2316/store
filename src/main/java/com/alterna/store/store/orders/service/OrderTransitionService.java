@@ -10,8 +10,10 @@ import com.alterna.store.store.orders.enums.OrderStatus;
 import com.alterna.store.store.orders.mapper.OrderMapper;
 import com.alterna.store.store.orders.repository.OrderRepository;
 import com.alterna.store.store.orders.rules.OrderStateMachine;
+import com.alterna.store.store.orders.entity.AddressEmbeddable;
 import com.alterna.store.store.shared.exception.ConflictException;
 import com.alterna.store.store.shared.exception.ResourceNotFoundException;
+import com.alterna.store.store.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -34,10 +36,13 @@ public class OrderTransitionService {
 		OrderStatus from = order.getStatus();
 		OrderStatus to = req.getToStatus();
 		OrderStateMachine.validateTransition(from, to);
+		if (to == OrderStatus.SHIPPED || to == OrderStatus.DELIVERED) {
+			requireShippingAddress(order);
+		}
 		if (to == OrderStatus.CONFIRMED) {
 			reserveStock(order);
 		}
-		if (to == OrderStatus.CANCELLED && from == OrderStatus.CONFIRMED) {
+		if (to == OrderStatus.CANCELLED && hasReservedStock(from)) {
 			releaseReservation(order);
 		}
 		order.setStatus(to);
@@ -63,6 +68,18 @@ public class OrderTransitionService {
 			}
 			bal.setReserved(bal.getReserved() + item.getQuantity());
 			inventoryBalanceRepository.save(bal);
+		}
+	}
+
+	/** Release reserved stock when cancelling from any state that had reservation. */
+	private boolean hasReservedStock(OrderStatus from) {
+		return from == OrderStatus.CONFIRMED || from == OrderStatus.PREPARING || from == OrderStatus.SHIPPED;
+	}
+
+	private void requireShippingAddress(OrderEntity order) {
+		AddressEmbeddable addr = order.getShippingAddress();
+		if (addr == null || addr.getAddress() == null || addr.getAddress().isBlank()) {
+			throw new ValidationException("El pedido debe tener dirección de envío antes de marcar como Enviado o Entregado.");
 		}
 	}
 

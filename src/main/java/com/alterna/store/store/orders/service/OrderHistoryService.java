@@ -1,10 +1,8 @@
 package com.alterna.store.store.orders.service;
 
 import com.alterna.store.store.orders.dto.OrderHistoryResponse;
-import com.alterna.store.store.orders.entity.OrderEntity;
 import com.alterna.store.store.orders.mapper.OrderMapper;
-import com.alterna.store.store.orders.repository.OrderRepository;
-import com.alterna.store.store.shared.exception.ResourceNotFoundException;
+import com.alterna.store.store.orders.repository.OrderStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,14 +14,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderHistoryService {
 
-	private final OrderRepository orderRepository;
+	private final OrderStatusHistoryRepository historyRepository;
 	private final OrderMapper orderMapper;
 
+	/** Load history by order id without touching lazy collection (avoids LazyInitializationException). */
 	@Transactional(readOnly = true)
 	public List<OrderHistoryResponse> getHistory(Long orderId) {
-		OrderEntity order = orderRepository.findById(orderId)
-				.orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
-		return order.getStatusHistory().stream()
+		return historyRepository.findByOrderIdOrderByChangedAtDesc(orderId).stream()
 				.map(orderMapper::toHistoryResponse)
 				.collect(Collectors.toList());
 	}

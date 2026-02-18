@@ -4,8 +4,10 @@ import com.alterna.store.store.orders.dto.OrderAddressUpdateRequest;
 import com.alterna.store.store.orders.dto.OrderResponse;
 import com.alterna.store.store.orders.entity.AddressEmbeddable;
 import com.alterna.store.store.orders.entity.OrderEntity;
+import com.alterna.store.store.orders.enums.OrderStatus;
 import com.alterna.store.store.orders.repository.OrderRepository;
 import com.alterna.store.store.shared.exception.ResourceNotFoundException;
+import com.alterna.store.store.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,9 @@ public class OrderAddressService {
 	public OrderResponse updateAddress(Long orderId, OrderAddressUpdateRequest req) {
 		OrderEntity order = orderRepository.findById(orderId)
 				.orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+		if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.DELIVERED) {
+			throw new ValidationException("No se puede cambiar la dirección una vez enviado o entregado.");
+		}
 		AddressEmbeddable addr = order.getShippingAddress() != null ? order.getShippingAddress() : new AddressEmbeddable();
 		if (req.getShippingAddress() != null) addr.setAddress(req.getShippingAddress());
 		if (req.getShippingCity() != null) addr.setCity(req.getShippingCity());
