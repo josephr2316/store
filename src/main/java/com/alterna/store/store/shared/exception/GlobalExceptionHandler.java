@@ -97,10 +97,26 @@ public class GlobalExceptionHandler {
 				.build());
 	}
 
+	@ExceptionHandler(ClassCastException.class)
+	public ResponseEntity<ApiError> handleClassCast(ClassCastException ex, HttpServletRequest req) {
+		log.warn("ClassCastException at {}: {}", req.getRequestURI(), ex.getMessage());
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.builder()
+				.message("Error temporal al procesar los datos. Por favor, intenta de nuevo.")
+				.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+				.path(req.getRequestURI())
+				.timestamp(Instant.now())
+				.build());
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest req) {
+		log.error("Unhandled exception at {}: {}", req.getRequestURI(), ex.getMessage(), ex);
+		String message = ex.getMessage() != null ? ex.getMessage() : "Internal server error";
+		if (message.contains("ClassCastException") || message.contains("cannot be cast")) {
+			message = "Error temporal al procesar los datos. Por favor, intenta de nuevo.";
+		}
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.builder()
-				.message(ex.getMessage() != null ? ex.getMessage() : "Internal server error")
+				.message(message)
 				.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
 				.path(req.getRequestURI())
 				.timestamp(Instant.now())
