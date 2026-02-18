@@ -9,6 +9,7 @@ import com.alterna.store.store.orders.entity.*;
 import com.alterna.store.store.orders.enums.OrderChannel;
 import com.alterna.store.store.orders.enums.OrderStatus;
 import com.alterna.store.store.orders.mapper.OrderMapper;
+import com.alterna.store.store.orders.repository.OrderItemRepository;
 import com.alterna.store.store.orders.repository.OrderRepository;
 import com.alterna.store.store.shared.exception.ResourceNotFoundException;
 import com.alterna.store.store.shared.exception.ValidationException;
@@ -18,13 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class OrderService {
 
 	private final OrderRepository orderRepository;
+	private final OrderItemRepository orderItemRepository;
 	private final VariantRepository variantRepository;
 	private final InventoryBalanceRepository inventoryBalanceRepository;
 	private final OrderMapper orderMapper;
@@ -81,14 +85,23 @@ public class OrderService {
 	public OrderResponse getById(Long id) {
 		OrderEntity e = orderRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Order", id));
+		List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
+		e.setItems(items);
 		return orderMapper.toResponse(e);
 	}
 
 	@Transactional(readOnly = true)
 	public List<OrderResponse> listByStatus(OrderStatus status) {
-		List<OrderEntity> list = status != null
-				? orderRepository.findByStatusWithItems(status)
-				: orderRepository.findAllWithItems();
-		return list.stream().map(orderMapper::toResponse).toList();
+		List<OrderEntity> orders = status != null
+				? orderRepository.findByStatusOrderByCreatedAtDesc(status)
+				: orderRepository.findAllByOrderByCreatedAtDesc();
+		if (orders.isEmpty()) return Collections.emptyList();
+		List<Long> orderIds = orders.stream().map(OrderEntity::getId).toList();
+		List<OrderItemEntity> itemsWithVariant = orderItemRepository.findByOrderIdInWithVariant(orderIds);
+		var itemsByOrderId = itemsWithVariant.stream().collect(Collectors.groupingBy(i -> i.getOrder().getId()));
+		for (OrderEntity o : orders) {
+			o.setItems(itemsByOrderId.getOrDefault(o.getId(), Collections.emptyList()));
+		}
+		return orders.stream().map(orderMapper::toResponse).toList();
 	}
 }

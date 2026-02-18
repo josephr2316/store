@@ -13,13 +13,11 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
 	List<OrderEntity> findByStatus(OrderStatus status);
 
-	/** Load all orders with items and variant (avoids LazyInitializationException when mapping to DTO). */
-	@Query("SELECT DISTINCT o FROM OrderEntity o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.variant ORDER BY o.createdAt DESC")
-	List<OrderEntity> findAllWithItems();
+	/** All orders ordered by created date (no fetch; use OrderService to attach items). */
+	List<OrderEntity> findAllByOrderByCreatedAtDesc();
 
-	/** Load orders by status with items and variant. */
-	@Query("SELECT DISTINCT o FROM OrderEntity o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.variant WHERE o.status = :status ORDER BY o.createdAt DESC")
-	List<OrderEntity> findByStatusWithItems(@Param("status") OrderStatus status);
+	/** Orders by status ordered by created date (no fetch). */
+	List<OrderEntity> findByStatusOrderByCreatedAtDesc(OrderStatus status);
 
 	List<OrderEntity> findByCreatedAtBetween(Instant from, Instant to);
 }
