@@ -24,6 +24,7 @@ public class OrderMapper {
 		}
 	}
 
+	/** Full response: loads items (use for getById). */
 	public OrderResponse toResponse(OrderEntity e) {
 		if (e == null) return null;
 		return OrderResponse.builder()
@@ -43,6 +44,32 @@ public class OrderMapper {
 				.notes(e.getNotes())
 				.createdAt(e.getCreatedAt())
 				.items(e.getItems() != null ? e.getItems().stream().map(this::toItemResponse).collect(Collectors.toList()) : Collections.emptyList())
+				.build();
+	}
+
+	/**
+	 * Summary response: NEVER accesses lazy collections.
+	 * Safe for list endpoints where 400+ orders are returned at once.
+	 */
+	public OrderResponse toSummaryResponse(OrderEntity e) {
+		if (e == null) return null;
+		return OrderResponse.builder()
+				.id(e.getId())
+				.externalId(e.getExternalId())
+				.channel(e.getChannel())
+				.status(e.getStatus())
+				.customerName(e.getCustomerName())
+				.customerPhone(e.getCustomerPhone())
+				.customerEmail(e.getCustomerEmail())
+				.shippingAddress(e.getShippingAddress() != null ? e.getShippingAddress().getAddress() : null)
+				.shippingCity(e.getShippingAddress() != null ? e.getShippingAddress().getCity() : null)
+				.shippingRegion(e.getShippingAddress() != null ? e.getShippingAddress().getRegion() : null)
+				.shippingPostalCode(e.getShippingAddress() != null ? e.getShippingAddress().getPostalCode() : null)
+				.totalAmount(toBigDecimal(e.getTotalAmount()))
+				.currency(e.getCurrency())
+				.notes(e.getNotes())
+				.createdAt(e.getCreatedAt())
+				.items(Collections.emptyList())  // explicitly empty — no lazy collection access
 				.build();
 	}
 

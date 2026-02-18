@@ -90,7 +90,8 @@ public class OrderService {
 
 	/**
 	 * Returns order headers WITHOUT items for fast list rendering.
-	 * Items are loaded on-demand in getById() when the user opens an order.
+	 * Uses toSummaryResponse which never accesses any lazy collection
+	 * (avoids N×400 orphanRemoval checks that caused timeout).
 	 */
 	@Transactional(readOnly = true)
 	public List<OrderResponse> listByStatus(OrderStatus status) {
@@ -98,10 +99,6 @@ public class OrderService {
 				? orderRepository.findByStatusOrderByCreatedAtDesc(status)
 				: orderRepository.findAllByOrderByCreatedAtDesc();
 		if (orders.isEmpty()) return Collections.emptyList();
-		// Set empty items list to avoid lazy-load and keep response small
-		for (OrderEntity o : orders) {
-			o.setItems(Collections.emptyList());
-		}
-		return orders.stream().map(orderMapper::toResponse).toList();
+		return orders.stream().map(orderMapper::toSummaryResponse).toList();
 	}
 }
