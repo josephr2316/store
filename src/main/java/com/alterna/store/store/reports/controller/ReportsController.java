@@ -1,5 +1,7 @@
 package com.alterna.store.store.reports.controller;
 
+import com.alterna.store.store.reports.dto.PagedResponse;
+import com.alterna.store.store.reports.dto.SalesInRangeResponse;
 import com.alterna.store.store.reports.dto.TopProductsResponse;
 import com.alterna.store.store.reports.dto.WeeklySalesResponse;
 import com.alterna.store.store.reports.service.ReportsService;
@@ -12,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/reports")
@@ -30,12 +31,21 @@ public class ReportsController {
 		return ResponseEntity.ok(reportsService.weeklySales(week));
 	}
 
+	@GetMapping("/sales-in-range")
+	@Operation(summary = "Sales aggregated by week in a date range (from = 1 year back, to = selected date)")
+	public ResponseEntity<SalesInRangeResponse> salesInRange(
+			@RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+		return ResponseEntity.ok(reportsService.salesInRange(from, to));
+	}
+
 	@GetMapping("/top-products")
-	@Operation(summary = "Top products by quantity sold")
-	public ResponseEntity<List<TopProductsResponse>> topProducts(
-			@RequestParam(defaultValue = "10") int limit,
-			@RequestParam(required = false) Instant from,
-			@RequestParam(required = false) Instant to) {
-		return ResponseEntity.ok(reportsService.topProducts(limit, from, to));
+	@Operation(summary = "Top products by quantity sold (paginated)")
+	public ResponseEntity<PagedResponse<TopProductsResponse>> topProducts(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size,
+			@RequestParam(name = "from", required = false) Instant from,
+			@RequestParam(name = "to", required = false) Instant to) {
+		return ResponseEntity.ok(reportsService.topProductsPaginated(from, to, page, size));
 	}
 }

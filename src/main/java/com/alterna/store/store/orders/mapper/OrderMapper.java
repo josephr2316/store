@@ -6,14 +6,26 @@ import com.alterna.store.store.orders.entity.OrderItemEntity;
 import com.alterna.store.store.orders.entity.OrderStatusHistoryEntity;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
 public class OrderMapper {
 
+	private static BigDecimal toBigDecimal(Object o) {
+		if (o == null) return BigDecimal.ZERO;
+		if (o instanceof BigDecimal bd) return bd;
+		if (o instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+		try {
+			return new BigDecimal(o.toString());
+		} catch (Exception ex) {
+			return BigDecimal.ZERO;
+		}
+	}
+
 	public OrderResponse toResponse(OrderEntity e) {
+		if (e == null) return null;
 		return OrderResponse.builder()
 				.id(e.getId())
 				.externalId(e.getExternalId())
@@ -26,7 +38,7 @@ public class OrderMapper {
 				.shippingCity(e.getShippingAddress() != null ? e.getShippingAddress().getCity() : null)
 				.shippingRegion(e.getShippingAddress() != null ? e.getShippingAddress().getRegion() : null)
 				.shippingPostalCode(e.getShippingAddress() != null ? e.getShippingAddress().getPostalCode() : null)
-				.totalAmount(e.getTotalAmount())
+				.totalAmount(toBigDecimal(e.getTotalAmount()))
 				.currency(e.getCurrency())
 				.notes(e.getNotes())
 				.createdAt(e.getCreatedAt())
@@ -35,12 +47,22 @@ public class OrderMapper {
 	}
 
 	public OrderItemResponse toItemResponse(OrderItemEntity i) {
+		if (i == null) return null;
+		if (i.getVariant() == null) {
+			return OrderItemResponse.builder()
+					.id(i.getId())
+					.variantId(null)
+					.variantSku("")
+					.quantity(i.getQuantity() != null ? i.getQuantity() : 0)
+					.unitPrice(toBigDecimal(i.getUnitPrice()))
+					.build();
+		}
 		return OrderItemResponse.builder()
 				.id(i.getId())
 				.variantId(i.getVariant().getId())
-				.variantSku(i.getVariant().getSku())
-				.quantity(i.getQuantity())
-				.unitPrice(i.getUnitPrice())
+				.variantSku(i.getVariant().getSku() != null ? i.getVariant().getSku() : "")
+				.quantity(i.getQuantity() != null ? i.getQuantity() : 0)
+				.unitPrice(toBigDecimal(i.getUnitPrice()))
 				.build();
 	}
 

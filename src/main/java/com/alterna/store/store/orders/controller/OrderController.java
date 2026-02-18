@@ -35,8 +35,20 @@ public class OrderController {
 	}
 
 	@GetMapping
-	@Operation(summary = "List orders (optional filter by status)")
-	public ResponseEntity<List<OrderResponse>> list(@RequestParam(required = false) OrderStatus status) {
-		return ResponseEntity.ok(orderService.listByStatus(status));
+	@Operation(summary = "List orders (optional filter by status). Use status=PENDING|CONFIRMED|... or omit for all.")
+	public ResponseEntity<List<OrderResponse>> list(@RequestParam(required = false) String status) {
+		OrderStatus parsed = parseStatus(status);
+		return ResponseEntity.ok(orderService.listByStatus(parsed));
+	}
+
+	private static OrderStatus parseStatus(String status) {
+		if (status == null || status.isBlank()) return null;
+		String s = status.trim().toUpperCase();
+		if ("ALL".equals(s) || "TODOS".equals(s) || "TODAS".equals(s)) return null;
+		try {
+			return OrderStatus.valueOf(s);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 }

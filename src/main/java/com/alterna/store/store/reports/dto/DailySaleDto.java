@@ -5,14 +5,11 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 @Data
 @Builder
-public class WeeklySalesResponse {
-	private LocalDate weekStart;
+public class DailySaleDto {
+	private LocalDate date;
 	private Long orderCount;
 	private BigDecimal totalAmount;
-	/** Ventas por día (siempre 7 entradas: Lun–Dom de la semana) */
-	private List<DailySaleDto> dailyBreakdown;
 }

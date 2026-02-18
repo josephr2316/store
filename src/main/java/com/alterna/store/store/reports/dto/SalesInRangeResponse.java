@@ -9,10 +9,11 @@ import java.util.List;
 
 @Data
 @Builder
-public class WeeklySalesResponse {
-	private LocalDate weekStart;
-	private Long orderCount;
+public class SalesInRangeResponse {
+	private LocalDate from;
+	private LocalDate to;
 	private BigDecimal totalAmount;
-	/** Ventas por día (siempre 7 entradas: Lun–Dom de la semana) */
-	private List<DailySaleDto> dailyBreakdown;
+	private Long totalOrders;
+	/** Ventas por semana en el rango (una entrada por semana) */
+	private List<PeriodSaleDto> byWeek;
 }

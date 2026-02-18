@@ -86,7 +86,9 @@ public class OrderService {
 
 	@Transactional(readOnly = true)
 	public List<OrderResponse> listByStatus(OrderStatus status) {
-		List<OrderEntity> list = status != null ? orderRepository.findByStatus(status) : orderRepository.findAll();
+		List<OrderEntity> list = status != null
+				? orderRepository.findByStatusWithItems(status)
+				: orderRepository.findAllWithItems();
 		return list.stream().map(orderMapper::toResponse).toList();
 	}
 }
