@@ -28,4 +28,22 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 	List<OrderEntity> findByStatusOrderByCreatedAtDesc(OrderStatus status);
 
 	List<OrderEntity> findByCreatedAtBetween(Instant from, Instant to);
+
+	/**
+	 * List order summaries via native SQL (no entity load, no lazy collections).
+	 * Sort/pagination must be applied via Pageable (Sort.by(DESC, "created_at")) to avoid duplicate ORDER BY.
+	 */
+	@Query(value = "SELECT id, external_id, channel, status, customer_name, customer_phone, customer_email, "
+			+ "shipping_address, shipping_city, shipping_region, shipping_postal_code, total_amount, currency, notes, created_at "
+			+ "FROM orders /* #pageable */",
+			countQuery = "SELECT COUNT(*) FROM orders",
+			nativeQuery = true)
+	Page<Object[]> findAllSummariesNative(Pageable pageable);
+
+	@Query(value = "SELECT id, external_id, channel, status, customer_name, customer_phone, customer_email, "
+			+ "shipping_address, shipping_city, shipping_region, shipping_postal_code, total_amount, currency, notes, created_at "
+			+ "FROM orders WHERE status = CAST(:status AS VARCHAR) /* #pageable */",
+			countQuery = "SELECT COUNT(*) FROM orders WHERE status = CAST(:status AS VARCHAR)",
+			nativeQuery = true)
+	Page<Object[]> findSummariesByStatusNative(@Param("status") String status, Pageable pageable);
 }

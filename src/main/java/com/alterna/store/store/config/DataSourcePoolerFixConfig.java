@@ -3,14 +3,17 @@ package com.alterna.store.store.config;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
  * Ensures prepareThreshold=0 is set on HikariCP DataSource for pgBouncer/Supabase compatibility.
  * Primary fix is in application.properties (spring.datasource.hikari.data-source-properties.prepareThreshold=0).
- * This bean acts as a secondary failsafe applied BEFORE HikariCP initialises the pool.
+ * This bean runs with highest precedence so the URL is fixed before any other processor or pool init.
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class DataSourcePoolerFixConfig implements BeanPostProcessor {
 
 	/**

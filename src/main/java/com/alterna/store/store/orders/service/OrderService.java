@@ -12,17 +12,20 @@ import com.alterna.store.store.orders.repository.OrderRepository;
 import com.alterna.store.store.orders.repository.OrderStatusHistoryRepository;
 import com.alterna.store.store.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -93,15 +96,23 @@ public class OrderService {
 
 	/**
 	 * Returns paginated order headers WITHOUT items for fast list rendering.
-	 * Default page size 30 keeps response small and avoids DB/pgBouncer timeouts.
+	 * Tries native SQL first (avoids entity load and pgBouncer issues); falls back to entity-based list if native fails.
 	 */
 	@Transactional(readOnly = true)
 	public Page<OrderResponse> listByStatus(OrderStatus status, int page, int size) {
-		PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
-		Page<OrderEntity> pageResult = status != null
-				? orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
-				: orderRepository.findAllByOrderByCreatedAtDesc(pageable);
-		return pageResult.map(orderMapper::toSummaryResponse);
+		PageRequest pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "created_at"));
+		try {
+			Page<Object[]> pageResult = status != null
+					? orderRepository.findSummariesByStatusNative(status.name(), pageable)
+					: orderRepository.findAllSummariesNative(pageable);
+			return pageResult.map(orderMapper::fromSummaryRow);
+		} catch (DataAccessException e) {
+			log.warn("Native order list failed, falling back to entity query: {}", e.getMessage());
+			Page<OrderEntity> entityPage = status != null
+					? orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
+					: orderRepository.findAllByOrderByCreatedAtDesc(pageable);
+			return entityPage.map(orderMapper::toSummaryResponse);
+		}
 	}
 
 	/** Convenience overload for backward compat (page 0, 30 items). */
