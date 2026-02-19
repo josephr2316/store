@@ -89,10 +89,7 @@ public class OrderService {
 	public OrderResponse getById(Long id) {
 		OrderEntity e = orderRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Order", id));
-		List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariantAndProduct(List.of(id));
-		if (items.isEmpty()) {
-			items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
-		}
+		List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
 		e.setItems(items);
 		return orderMapper.toResponse(e);
 	}

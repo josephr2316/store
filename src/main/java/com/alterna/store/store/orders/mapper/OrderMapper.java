@@ -145,13 +145,13 @@ public class OrderMapper {
 					.build();
 		}
 		var v = i.getVariant();
-		String productName = v.getProduct() != null ? v.getProduct().getName() : null;
+		// Do not access v.getProduct() — it is lazy and can cause LazyInitializationException / 500 in production
 		String variantName = v.getName() != null ? v.getName() : (v.getSku() != null ? v.getSku() : "");
 		return OrderItemResponse.builder()
 				.id(i.getId())
 				.variantId(v.getId())
 				.variantSku(v.getSku() != null ? v.getSku() : "")
-				.productName(productName)
+				.productName(null)
 				.variantName(variantName)
 				.quantity(i.getQuantity() != null ? i.getQuantity() : 0)
 				.unitPrice(toBigDecimal(i.getUnitPrice()))
