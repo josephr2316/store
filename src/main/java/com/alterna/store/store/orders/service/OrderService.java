@@ -89,9 +89,19 @@ public class OrderService {
 	public OrderResponse getById(Long id) {
 		OrderEntity e = orderRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Order", id));
-		List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
-		e.setItems(items);
-		return orderMapper.toResponse(e);
+		try {
+			List<Object[]> rows = orderItemRepository.findItemRowsByOrderIdNative(id);
+			List<OrderItemResponse> itemResponses = rows.stream()
+					.map(orderMapper::fromItemRow)
+					.filter(r -> r != null)
+					.toList();
+			return orderMapper.toResponseWithItems(e, itemResponses);
+		} catch (DataAccessException ex) {
+			log.warn("Native order items failed for order {}, falling back to JPQL: {}", id, ex.getMessage());
+			List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
+			e.setItems(items);
+			return orderMapper.toResponse(e);
+		}
 	}
 
 	/**

@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -55,7 +56,7 @@ public class OrderMapper {
 		return null;
 	}
 
-	/** Full response: loads items (use for getById). */
+	/** Full response: loads items (use for getById when items from entity). */
 	public OrderResponse toResponse(OrderEntity e) {
 		if (e == null) return null;
 		return OrderResponse.builder()
@@ -75,6 +76,43 @@ public class OrderMapper {
 				.notes(e.getNotes())
 				.createdAt(e.getCreatedAt())
 				.items(e.getItems() != null ? e.getItems().stream().map(this::toItemResponse).collect(Collectors.toList()) : Collections.emptyList())
+				.build();
+	}
+
+	/** Build order response with pre-mapped items (e.g. from native query). Does not access e.getItems(). */
+	public OrderResponse toResponseWithItems(OrderEntity e, List<OrderItemResponse> items) {
+		if (e == null) return null;
+		return OrderResponse.builder()
+				.id(e.getId())
+				.externalId(e.getExternalId())
+				.channel(e.getChannel())
+				.status(e.getStatus())
+				.customerName(e.getCustomerName())
+				.customerPhone(e.getCustomerPhone())
+				.customerEmail(e.getCustomerEmail())
+				.shippingAddress(e.getShippingAddress() != null ? e.getShippingAddress().getAddress() : null)
+				.shippingCity(e.getShippingAddress() != null ? e.getShippingAddress().getCity() : null)
+				.shippingRegion(e.getShippingAddress() != null ? e.getShippingAddress().getRegion() : null)
+				.shippingPostalCode(e.getShippingAddress() != null ? e.getShippingAddress().getPostalCode() : null)
+				.totalAmount(toBigDecimal(e.getTotalAmount()))
+				.currency(e.getCurrency())
+				.notes(e.getNotes())
+				.createdAt(e.getCreatedAt())
+				.items(items != null ? items : Collections.emptyList())
+				.build();
+	}
+
+	/** Map native item row to OrderItemResponse. Row: id, variant_id, sku, name, quantity, unit_price. */
+	public OrderItemResponse fromItemRow(Object[] row) {
+		if (row == null || row.length < 6) return null;
+		return OrderItemResponse.builder()
+				.id(row[0] != null ? ((Number) row[0]).longValue() : null)
+				.variantId(row[1] != null ? ((Number) row[1]).longValue() : null)
+				.variantSku(row[2] != null ? row[2].toString() : "")
+				.productName(null)
+				.variantName(row[3] != null ? row[3].toString() : (row[2] != null ? row[2].toString() : ""))
+				.quantity(row[4] != null ? ((Number) row[4]).intValue() : 0)
+				.unitPrice(toBigDecimal(row[5]))
 				.build();
 	}
 
