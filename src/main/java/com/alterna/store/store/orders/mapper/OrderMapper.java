@@ -138,14 +138,21 @@ public class OrderMapper {
 					.id(i.getId())
 					.variantId(null)
 					.variantSku("")
+					.productName(null)
+					.variantName(null)
 					.quantity(i.getQuantity() != null ? i.getQuantity() : 0)
 					.unitPrice(toBigDecimal(i.getUnitPrice()))
 					.build();
 		}
+		var v = i.getVariant();
+		String productName = v.getProduct() != null ? v.getProduct().getName() : null;
+		String variantName = v.getName() != null ? v.getName() : (v.getSku() != null ? v.getSku() : "");
 		return OrderItemResponse.builder()
 				.id(i.getId())
-				.variantId(i.getVariant().getId())
-				.variantSku(i.getVariant().getSku() != null ? i.getVariant().getSku() : "")
+				.variantId(v.getId())
+				.variantSku(v.getSku() != null ? v.getSku() : "")
+				.productName(productName)
+				.variantName(variantName)
 				.quantity(i.getQuantity() != null ? i.getQuantity() : 0)
 				.unitPrice(toBigDecimal(i.getUnitPrice()))
 				.build();

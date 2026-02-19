@@ -13,4 +13,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItemEntity, Long
 	/** Load items with variant fetched (avoids LazyInitializationException). Batch by order ids. */
 	@Query("SELECT i FROM OrderItemEntity i JOIN FETCH i.variant WHERE i.order.id IN :orderIds")
 	List<OrderItemEntity> findByOrderIdInWithVariant(@Param("orderIds") List<Long> orderIds);
+
+	/** Load items with variant and product for order detail (product name, variant name). */
+	@Query("SELECT i FROM OrderItemEntity i JOIN FETCH i.variant v JOIN FETCH v.product WHERE i.order.id IN :orderIds")
+	List<OrderItemEntity> findByOrderIdInWithVariantAndProduct(@Param("orderIds") List<Long> orderIds);
 }

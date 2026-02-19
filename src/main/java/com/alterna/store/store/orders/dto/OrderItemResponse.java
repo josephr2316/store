@@ -11,6 +11,8 @@ public class OrderItemResponse {
 	private Long id;
 	private Long variantId;
 	private String variantSku;
+	private String productName;
+	private String variantName;
 	private Integer quantity;
 	private BigDecimal unitPrice;
 }
