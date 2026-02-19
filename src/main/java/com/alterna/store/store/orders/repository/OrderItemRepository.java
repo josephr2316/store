@@ -14,7 +14,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItemEntity, Long
 	@Query("SELECT i FROM OrderItemEntity i JOIN FETCH i.variant WHERE i.order.id IN :orderIds")
 	List<OrderItemEntity> findByOrderIdInWithVariant(@Param("orderIds") List<Long> orderIds);
 
-	/** Load items with variant and product for order detail (product name, variant name). */
-	@Query("SELECT i FROM OrderItemEntity i JOIN FETCH i.variant v JOIN FETCH v.product WHERE i.order.id IN :orderIds")
+	/** Load items with variant and product for order detail (product name, variant name). DISTINCT avoids duplicate rows from multiple JOIN FETCH. */
+	@Query("SELECT DISTINCT i FROM OrderItemEntity i JOIN FETCH i.variant v JOIN FETCH v.product WHERE i.order.id IN :orderIds")
 	List<OrderItemEntity> findByOrderIdInWithVariantAndProduct(@Param("orderIds") List<Long> orderIds);
 }
