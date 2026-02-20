@@ -29,6 +29,26 @@ public class OrderMapper {
 		}
 	}
 
+	private static long toLong(Object o) {
+		if (o == null) return 0L;
+		if (o instanceof Number n) return n.longValue();
+		try {
+			return Long.parseLong(o.toString());
+		} catch (Exception ex) {
+			return 0L;
+		}
+	}
+
+	private static int toInt(Object o) {
+		if (o == null) return 0;
+		if (o instanceof Number n) return n.intValue();
+		try {
+			return Integer.parseInt(o.toString());
+		} catch (Exception ex) {
+			return 0;
+		}
+	}
+
 	private static OrderChannel parseChannel(Object o) {
 		if (o == null) return OrderChannel.OTHER;
 		try {
@@ -102,16 +122,16 @@ public class OrderMapper {
 				.build();
 	}
 
-	/** Map native item row to OrderItemResponse. Row: id, variant_id, sku, name, quantity, unit_price. */
+	/** Map native item row to OrderItemResponse. Row: id, variant_id, sku, name, quantity, unit_price. Defensive for pgBouncer/driver type variations. */
 	public OrderItemResponse fromItemRow(Object[] row) {
 		if (row == null || row.length < 6) return null;
 		return OrderItemResponse.builder()
-				.id(row[0] != null ? ((Number) row[0]).longValue() : null)
-				.variantId(row[1] != null ? ((Number) row[1]).longValue() : null)
+				.id(row[0] != null ? Long.valueOf(toLong(row[0])) : null)
+				.variantId(row[1] != null ? Long.valueOf(toLong(row[1])) : null)
 				.variantSku(row[2] != null ? row[2].toString() : "")
 				.productName(null)
 				.variantName(row[3] != null ? row[3].toString() : (row[2] != null ? row[2].toString() : ""))
-				.quantity(row[4] != null ? ((Number) row[4]).intValue() : 0)
+				.quantity(toInt(row[4]))
 				.unitPrice(toBigDecimal(row[5]))
 				.build();
 	}
