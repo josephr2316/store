@@ -23,6 +23,7 @@ import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -98,9 +99,14 @@ public class OrderService {
 			return orderMapper.toResponseWithItems(e, itemResponses);
 		} catch (Exception ex) {
 			log.warn("Native order items failed for order {}, falling back to JPQL: {}", id, ex.getMessage());
-			List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
-			e.setItems(items);
-			return orderMapper.toResponse(e);
+			try {
+				List<OrderItemEntity> items = orderItemRepository.findByOrderIdInWithVariant(List.of(id));
+				e.setItems(items);
+				return orderMapper.toResponse(e);
+			} catch (Exception fallbackEx) {
+				log.warn("JPQL fallback failed for order {}, returning order without items: {}", id, fallbackEx.getMessage());
+				return orderMapper.toResponseWithItems(e, Collections.emptyList());
+			}
 		}
 	}
 
